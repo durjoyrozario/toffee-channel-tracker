@@ -1,4 +1,4 @@
-name: Auto Update All Channels
+name: Auto Update Zee Bangla M3U8
 
 on:
   workflow_dispatch:
@@ -29,8 +29,8 @@ jobs:
 
       - name: Commit and Push Changes
         run: |
-          touch playlist.m3u8 channels.json
+          touch zee-bangla.m3u8
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add playlist.m3u8 channels.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto update all channels" && git push)
+          git add zee-bangla.m3u8
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto update Zee Bangla m3u8" && git push)
