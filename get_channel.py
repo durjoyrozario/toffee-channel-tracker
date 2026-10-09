@@ -1,60 +1,57 @@
 import json
 import requests
+import re
 
-# Toffee Playlist Source
 SOURCE_URL = "https://raw.githubusercontent.com/srhady/toffee-bd/refs/heads/main/toffee_playlist.json"
 
-# আপনি যে চ্যানেল চান
-TARGET_CHANNEL_NAME = "Zee Bangla"
+def clean_filename(name):
+    # ফাইলের নামের জন্য অকার্যকর ক্যারেক্টার সরানো
+    clean_name = re.sub(r'[\/:*?"<>| ]+', '_', name).strip('_').lower()
+    return clean_name
 
-def update_channel_m3u8():
+def update_all_channels():
     try:
         response = requests.get(SOURCE_URL, timeout=10)
         response.raise_for_status()
         playlist = response.json()
 
-        target_url = None
-        logo_url = ""
-        matched_name = TARGET_CHANNEL_NAME
-
-        # ১. প্লেলিস্ট থেকে Zee Bangla বা কাছাকাছি নাম খোঁজা (Case-insensitive)
-        # স্পেস বা ড্যাশ বাদ দিয়েও সার্চ করবে
-        target_clean = TARGET_CHANNEL_NAME.lower().replace(" ", "").replace("-", "")
+        m3u_content = "#EXTM3U\n\n"
+        all_channels_data = []
 
         for item in playlist:
-            channel_name = item.get("name") or item.get("title") or ""
-            clean_name = channel_name.lower().replace(" ", "").replace("-", "")
+            name = item.get("name") or item.get("title") or "Unknown"
+            url = item.get("link") or item.get("url") or item.get("stream_url")
+            logo = item.get("logo") or item.get("logo_url") or ""
 
-            if target_clean in clean_name:
-                target_url = item.get("link") or item.get("url")
-                logo_url = item.get("logo") or item.get("logo_url") or ""
-                matched_name = channel_name
-                break
+            if not url:
+                continue
 
-        # ২. যদি কোনো কারণে চ্যানেল না পাওয়া যায়, তবে ফাইল যেন খালি না থাকে (ফেলসেফ)
-        if not target_url and len(playlist) > 0:
-            print(f"Warning: '{TARGET_CHANNEL_NAME}' not found directly. Falling back to available item.")
-            target_url = playlist[0].get("link") or playlist[0].get("url")
-            logo_url = playlist[0].get("logo") or playlist[0].get("logo_url") or ""
+            # ১. মাস্টার M3U8 প্লেলিস্ট তৈরি
+            m3u_content += f'#EXTINF:-1 tvg-logo="{logo}",{name}\n{url}\n\n'
 
-        if target_url:
-            # M3U8 Playlist তৈরি
-            m3u8_content = "#EXTM3U\n"
-            m3u8_content += f'#EXTINF:-1 tvg-logo="{logo_url}",{matched_name}\n'
-            m3u8_content += f"{target_url}\n"
+            # ২. প্রতিটি চ্যানেলের জন্য আলাদা টেক্সট ফাইল তৈরি (যেমন: somoy_tv.txt, zee_bangla.txt)
+            file_name = f"{clean_filename(name)}.txt"
+            with open(file_name, "w", encoding="utf-8") as f:
+                f.write(url)
 
-            # ফাইল রাইট করা
-            with open("playlist.m3u8", "w", encoding="utf-8") as f:
-                f.write(m3u8_content)
+            all_channels_data.append({
+                "name": name,
+                "stream_url": url,
+                "logo": logo,
+                "file_name": file_name
+            })
 
-            with open("stream.txt", "w", encoding="utf-8") as f:
-                f.write(target_url)
+        # মাস্টার ফাইলগুলো সেভ করা
+        with open("playlist.m3u8", "w", encoding="utf-8") as f:
+            f.write(m3u_content)
 
-            print(f"Successfully generated files for: {matched_name}")
-            print(f"URL: {target_url}")
+        with open("channels.json", "w", encoding="utf-8") as f:
+            json.dump(all_channels_data, f, indent=4, ensure_ascii=False)
+
+        print(f"Successfully created links for {len(all_channels_data)} channels!")
 
     except Exception as e:
         print(f"Error: {e}")
 
 if __name__ == "__main__":
-    update_channel_m3u8()
+    update_all_channels()
