@@ -1,12 +1,16 @@
 import json
 import requests
 
+# মূল প্লেলিস্টের লিংক
 SOURCE_URL = "https://raw.githubusercontent.com/srhady/toffee-bd/refs/heads/main/toffee_playlist.json"
 
-def update_channels():
-    m3u_content = "#EXTM3U\n\n"
-    channels_dict = {}
+# আপনি যে চ্যানেলটির লিংক আলাদাভাবে ব্যাকগ্রাউন্ডে আপডেট করতে চান
+TARGET_CHANNEL_NAME = "Zee Bangla" 
 
+# আপনার কাঙ্ক্ষিত ফাইলের নাম (যেমন: zee-bangla.m3u8)
+OUTPUT_FILENAME = "zee-bangla.m3u8"
+
+def update_single_channel():
     try:
         response = requests.get(SOURCE_URL, timeout=10)
         response.raise_for_status()
@@ -14,41 +18,44 @@ def update_channels():
 
         # যদি ডেটা ডাইরেক্ট লিস্ট না হয়ে কোনো অবজেক্টের ভেতরে থাকে
         if isinstance(playlist, dict):
-            # সম্ভাব্য লিস্ট কি-গুলো চেক করা
             for key in ["channels", "data", "playlist", "items"]:
                 if key in playlist and isinstance(playlist[key], list):
                     playlist = playlist[key]
                     break
 
+        target_url = None
+        logo_url = ""
+        matched_name = TARGET_CHANNEL_NAME
+
+        target_clean = TARGET_CHANNEL_NAME.lower().replace(" ", "").replace("-", "")
+
+        # মূল লিস্ট থেকে নির্দিষ্ট চ্যানেলটি খোঁজা
         for item in playlist:
             if not isinstance(item, dict):
                 continue
                 
-            # সব ধরনের সম্ভাব্য ফিল্ড নেম হ্যান্ডেল করার ব্যবস্থা
-            name = item.get("name") or item.get("title") or item.get("channel_name") or "Unknown"
-            url = item.get("link") or item.get("url") or item.get("stream_url") or item.get("file") or ""
-            logo = item.get("logo") or item.get("logo_url") or item.get("img") or ""
+            name = str(item.get("name") or item.get("title") or item.get("channel_name") or "")
+            clean_name = name.lower().replace(" ", "").replace("-", "")
 
-            if url:
-                m3u_content += f'#EXTINF:-1 tvg-logo="{logo}",{name}\n{url}\n\n'
+            if target_clean in clean_name:
+                target_url = item.get("link") or item.get("url") or item.get("stream_url") or item.get("file") or ""
+                logo_url = item.get("logo") or item.get("logo_url") or item.get("img") or ""
+                matched_name = name
+                break
+
+        # যদি লিংক পাওয়া যায়, তবে .m3u8 ফরম্যাটে ফাইল তৈরি করা
+        if target_url:
+            m3u8_content = f"#EXTM3U\n#EXTINF:-1 tvg-logo=\"{logo_url}\",{matched_name}\n{target_url}\n"
+            
+            with open(OUTPUT_FILENAME, "w", encoding="utf-8") as f:
+                f.write(m3u8_content)
                 
-                clean_key = str(name).lower().replace(" ", "").replace("-", "")
-                channels_dict[clean_key] = {
-                    "name": name,
-                    "url": url,
-                    "logo": logo
-                }
+            print(f"Successfully updated {OUTPUT_FILENAME} with live stream for {matched_name}!")
+        else:
+            print(f"Channel '{TARGET_CHANNEL_NAME}' not found in the source list.")
+
     except Exception as e:
         print(f"Error: {e}")
 
-    # ফাইল সেভ করা
-    with open("playlist.m3u8", "w", encoding="utf-8") as f:
-        f.write(m3u_content)
-
-    with open("channels.json", "w", encoding="utf-8") as f:
-        json.dump(channels_dict, f, indent=4, ensure_ascii=False)
-
-    print(f"Total channels found: {len(channels_dict)}")
-
 if __name__ == "__main__":
-    update_channels()
+    update_single_channel()
