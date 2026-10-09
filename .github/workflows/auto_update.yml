@@ -2,8 +2,11 @@ name: Auto Update Zee Bangla M3U8
 
 on:
   workflow_dispatch:
+  repository_dispatch:
+    types: [trigger_workflow]
   schedule:
-    - cron: '00,15,30,45 * * * *'
+    - cron: '*/15 * * * *'
+    
 
 permissions:
   contents: write
