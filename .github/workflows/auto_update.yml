@@ -29,6 +29,7 @@ jobs:
 
       - name: Commit and Push Changes
         run: |
+          touch playlist.m3u8 channels.json
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add playlist.m3u8 channels.json
