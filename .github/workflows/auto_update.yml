@@ -5,7 +5,7 @@ on:
   repository_dispatch:
     types: [trigger_workflow]
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '*/5 * * * *'
     
 
 permissions:
