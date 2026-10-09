@@ -3,7 +3,7 @@ name: Auto Update Zee Bangla M3U8
 on:
   workflow_dispatch:
   schedule:
-    - cron: '7,22,37,52 * * * *'
+    - cron: '00,15,30,45 * * * *'
 
 permissions:
   contents: write
